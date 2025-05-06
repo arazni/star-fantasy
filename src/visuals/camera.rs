@@ -3,19 +3,40 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct PlayerOnMap;
 
-pub fn setup_camera(mut commands: Commands, asset_server: Res<AssetServer>) {
-	commands.spawn(Camera2d);
+#[derive(Component)]
+pub struct CameraComponent;
+
+pub fn setup_camera(
+	mut commands: Commands,
+	asset_server: Res<AssetServer>,
+	settings: Res<CameraSettings>
+) {
+	commands.spawn((
+		Camera2d, 
+		Projection::from(OrthographicProjection {
+			scale: settings.transform_scale,
+			..OrthographicProjection::default_2d()
+	})));
 
 	commands.spawn((
 		PlayerOnMap,
 		Sprite::from_image(
 			asset_server.load("characters/soldier-neutral-down.png")
 		),
-		Transform::from_scale(Vec3::new(4.,4.,1.))
+		// Transform::from_scale(Vec3::new(settings.transform_scale,settings.transform_scale,1.))
 	));
 }
 
-pub fn update_camera(mut camera: Single<&mut Transform, (With<Camera2d>, Without<PlayerOnMap>)>,
+// pub fn setup_zoom(
+// 	mut query: Query<&mut OrthographicProjection, With<CameraComponent>>,
+// 	settings: Res<CameraSettings>
+// ) {
+// 	let mut projection = query.single_mut();
+// 	projection.scaling_mode = ScalingMode::WindowSize(settings.transform_scale);
+// }
+
+pub fn update_camera(
+	mut camera: Single<&mut Transform, (With<Camera2d>, Without<PlayerOnMap>)>,
 	player: Single<&Transform, (With<PlayerOnMap>, Without<Camera2d>)>,
 	time: Res<Time>,
 	settings: Res<CameraSettings>
@@ -38,15 +59,15 @@ pub fn move_player(
 		direction.x -= 1.;
 	}
 
-	if keyboard.pressed(KeyCode::ArrowRight) {
+	else if keyboard.pressed(KeyCode::ArrowRight) {
 		direction.x += 1.;
 	}
 
-	if keyboard.pressed(KeyCode::ArrowDown) {
+	else if keyboard.pressed(KeyCode::ArrowDown) {
 		direction.y -= 1.;
 	}
 
-	if keyboard.pressed(KeyCode::ArrowUp) {
+	else if keyboard.pressed(KeyCode::ArrowUp) {
 		direction.y += 1.;
 	}
 
@@ -57,14 +78,16 @@ pub fn move_player(
 #[derive(Resource)]
 pub struct CameraSettings {
 	player_speed: f32,
-	camera_decay_rate: f32
+	camera_decay_rate: f32,
+	transform_scale: f32,
 }
 
 impl Default for CameraSettings {
 	fn default() -> Self {
 		CameraSettings {
 			player_speed: 100.,
-			camera_decay_rate: 2.
+			camera_decay_rate: 2.,
+			transform_scale: 0.125,
 		}
 	}
 }
