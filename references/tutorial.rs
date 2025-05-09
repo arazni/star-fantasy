@@ -40,3 +40,34 @@ impl Plugin for HelloPlugin {
 			app.add_systems(Update, (update_people, greet_people).chain());
 	}
 }
+
+	// let move_delta = (direction * camera_setting.tile_size.f / trigger.steps.f)
+	// 	.extend(0.);
+	// movable.movement_state = MovementState::Moving;
+	// let mut animation_time = Time::from_duration(time.delta());
+
+	// if trigger.orientation == Orientation::Down || trigger.orientation == Orientation::Up {
+	// 	texture_atlas.index = if trigger.orientation == Orientation::Down { SPRITE_DOWN_INDEX }
+	// 		else { SPRITE_UP_INDEX };
+
+	// 	while step < trigger.steps.u {
+	// 		let now = Instant::now();
+	// 		thread::sleep(Duration::from_secs_f32(0.1));
+	// 		trigger.timer.tick(now.elapsed());
+	// 		if trigger.timer.just_finished() {
+	// 			sprite.flip_x = !sprite.flip_x;
+	// 			step += 1;
+	// 			transform.translation += move_delta;
+	// 		}
+	// 	}
+	// } else {
+	// 	while step < trigger.steps.u {
+	// 		trigger.timer.tick(time.delta());
+	// 		if trigger.timer.just_finished() {
+	// 			texture_atlas.index = if texture_atlas.index == SPRITE_LEFT1_INDEX { SPRITE_LEFT2_INDEX }
+	// 				else { SPRITE_LEFT1_INDEX };
+	// 			step += 1;
+	// 			transform.translation += move_delta;
+	// 		}
+	// 	}
+	// }

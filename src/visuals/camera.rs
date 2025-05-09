@@ -1,26 +1,8 @@
-use bevy::prelude::*;
+use std::time::{Duration, Instant};
 
-#[derive(Component)]
-pub struct PlayerOnMap;
-
-#[derive(Component)]
-pub struct MovableOnMap;
-
-#[derive(Clone, PartialEq, Eq)]
-pub enum Orientation {
-	Up,
-	Left,
-	Right,
-	Down
-}
-
-pub enum Size {
-	Small,
-	Medium,
-	Large,
-	Huge,
-	Colossal
-}
+use bevy::{platform::thread, prelude::*};
+use crate::common::{u_int_float::*, size::*, states::*};
+use super::movement::*;
 
 pub fn standard_atlas(setting: Res<SpriteSettings>, size: Size) -> TextureAtlasLayout {
 	let sprite_size = setting.sprite_size.u * match size {
@@ -28,17 +10,10 @@ pub fn standard_atlas(setting: Res<SpriteSettings>, size: Size) -> TextureAtlasL
 		Size::Medium => 1,
 		Size::Large => 2,
 		Size::Huge => 3,
-		Size::Colossal => 4
+		Size::Gargantuan => 4
 	};
 
 	TextureAtlasLayout::from_grid(UVec2::splat(sprite_size), 4, 1, None, None)
-}
-
-#[derive(Event, Clone)]
-pub struct MovementEvent {
-	change_x: f32,
-	change_y: f32,
-	orientation: Orientation
 }
 
 #[derive(Component)]
@@ -66,7 +41,7 @@ pub fn setup_player_on_map(
 
 	commands.spawn((
 		PlayerOnMap,
-		MovableOnMap,
+		MovableOnMap::default(),
 		Sprite::from_atlas_image(
 			asset_server.load("characters/mystic-animation.png"),
 			TextureAtlas {
@@ -78,14 +53,6 @@ pub fn setup_player_on_map(
 
 	commands.add_observer(on_move);
 }
-
-// pub fn setup_zoom(
-// 	mut query: Query<&mut OrthographicProjection, With<CameraComponent>>,
-// 	settings: Res<CameraSettings>
-// ) {
-// 	let mut projection = query.single_mut();
-// 	projection.scaling_mode = ScalingMode::WindowSize(settings.transform_scale);
-// }
 
 pub fn update_camera(
 	mut camera: Single<&mut Transform, (With<Camera2d>, Without<PlayerOnMap>)>,
@@ -101,101 +68,47 @@ pub fn update_camera(
 
 pub fn on_move(
 	trigger: Trigger<MovementEvent>,
-	mut mover_query: Query<(&mut Transform, &mut Sprite), With<MovableOnMap>>,
-	camera_setting: Res<CameraSettings>,
-	sprite_setting: Res<SpriteSettings>
+	mut mover_query: Query<(&mut Transform, &mut Sprite, &mut MovableOnMap)>,
+	camera_setting: Res<CameraSettings>
 ) {
 	let direction = Vec2::new(trigger.change_x, trigger.change_y);
 	let move_delta = direction * camera_setting.tile_size.f;
 
-	let Ok(mut mover) = mover_query.get_mut(trigger.target()) else {
+	let Ok(mover) = mover_query.get_mut(trigger.target()) else {
 		return;
 	};
+	let (mut transform, mut sprite, mut movable) = mover;
 
-	mover.0.translation += move_delta.extend(0.);
-	let Some(ref mut texture_atlas) = mover.1.texture_atlas else {
+	transform.translation += move_delta.extend(0.);
+	let Some(ref mut texture_atlas) = sprite.texture_atlas else {
 		return;
 	};
 
 	if trigger.orientation == Orientation::Down {
 		texture_atlas.index = SPRITE_DOWN_INDEX;
-		mover.1.flip_x = !mover.1.flip_x;
+		sprite.flip_x = !sprite.flip_x;
+		movable.movement_state = MovementState::Idle;
 		return;
 	}
 	if trigger.orientation == Orientation::Up {
 		texture_atlas.index = SPRITE_UP_INDEX;
-		mover.1.flip_x = !mover.1.flip_x;
+		sprite.flip_x = !sprite.flip_x;
+		movable.movement_state = MovementState::Idle;
 		return;
 	}
 
-	if texture_atlas.index == SPRITE_LEFT1_INDEX {
-		texture_atlas.index = SPRITE_LEFT2_INDEX;
-	} else {
-		texture_atlas.index = SPRITE_LEFT1_INDEX;
-	}
+	texture_atlas.index = if texture_atlas.index == SPRITE_LEFT1_INDEX { SPRITE_LEFT2_INDEX } 
+		else { SPRITE_LEFT1_INDEX };
+	
+	sprite.flip_x = if trigger.orientation == Orientation::Left { false }
+		else { true };
 
-	if trigger.orientation == Orientation::Left {
-		mover.1.flip_x = false;
-	} else {
-		mover.1.flip_x = true;
-	}
-}
-
-pub fn move_player(
-	player_query: Single<Entity, With<PlayerOnMap>>,
-	keyboard: Res<ButtonInput<KeyCode>>,
-	mut commands: Commands
-) {
-	let player = player_query.into_inner();
-
-	if keyboard.pressed(KeyCode::ArrowLeft) {
-		commands.trigger_targets(
-			MovementEvent {
-				change_x: -1.,
-				change_y: 0.,
-				orientation: Orientation::Left
-			},
-			player
-		);
-	}
-
-	else if keyboard.pressed(KeyCode::ArrowRight) {
-		commands.trigger_targets(
-			MovementEvent {
-				change_x: 1.,
-				change_y: 0.,
-				orientation: Orientation::Right
-			},
-			player
-		);
-	}
-
-	else if keyboard.pressed(KeyCode::ArrowDown) {
-		commands.trigger_targets(
-			MovementEvent {
-				change_x: 0.,
-				change_y: -1.,
-				orientation: Orientation::Down
-			},
-			player
-		);
-	}
-
-	else if keyboard.pressed(KeyCode::ArrowUp) {
-		commands.trigger_targets(
-			MovementEvent {
-				change_x: 0.,
-				change_y: 1.,
-				orientation: Orientation::Up
-			},
-			player
-		);	
-	}
+	movable.movement_state = MovementState::Idle;
 }
 
 #[derive(Resource)]
 pub struct CameraSettings {
-	player_speed: f32,
+	// player_speed: f32,
 	camera_decay_rate: f32,
 	transform_scale: f32,
 	tile_size: UIntFloat
@@ -209,23 +122,11 @@ const SPRITE_LEFT2_INDEX: usize = 3;
 impl Default for CameraSettings {
 	fn default() -> Self {
 		CameraSettings {
-			player_speed: 100.,
+			// player_speed: 100.,
 			camera_decay_rate: 2.,
 			transform_scale: 0.5,
 			tile_size: UIntFloat::new(16)
 		}
-	}
-}
-
-pub struct UIntFloat {
-	i: i32,
-	f: f32,
-	u: u32
-}
-
-impl UIntFloat {
-	pub fn new(int: i32) -> Self {
-		Self {i: int, f: int as f32, u: int as u32}
 	}
 }
 
@@ -242,14 +143,6 @@ impl Default for SpriteSettings {
 	}
 }
 
-#[derive(Component)]
-struct AnimationConfig {
-	first_sprite_index: usize,
-	last_sprite_index: usize,
-	fps: u8,
-	frame_timer: Timer,
-}
-
 pub struct WorldCameraPlugin;
 
 impl Plugin for WorldCameraPlugin {
@@ -257,6 +150,7 @@ impl Plugin for WorldCameraPlugin {
 			app.insert_resource(CameraSettings { ..default() });
 			app.insert_resource(SpriteSettings { ..default() });
 			app.add_systems(Startup, (setup_camera, setup_player_on_map).chain());
-			app.add_systems(Update, (move_player, update_camera).chain());
+			// app.add_systems(Update, (move_player, update_camera).chain());
+			app.add_systems(Update, move_player);
 	}
 }

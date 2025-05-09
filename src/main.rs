@@ -1,3 +1,4 @@
+mod common;
 mod visuals;
 
 use bevy::prelude::*;
