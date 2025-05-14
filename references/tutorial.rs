@@ -71,3 +71,15 @@ impl Plugin for HelloPlugin {
 	// 		}
 	// 	}
 	// }
+
+	// animation.add_curve_to_target(
+	// 	animation_target_id,
+	// 	AnimatableCurve::new(
+	// 		animated_field!(Transform::translation),
+	// 		SampleAutoCurve::new(
+	// 			Interval::new(0., 1.).expect("appropriate interval in on_move"),
+	// 			[
+	// 				Vec3::ZERO,
+	// 				move_delta.extend(0.)
+	// 			]).expect("appropriate samples in on_move")
+	// 		));

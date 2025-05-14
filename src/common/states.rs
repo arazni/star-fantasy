@@ -5,5 +5,5 @@ pub enum MovementState {
 	#[default]
 	Idle,
 	Moving,
-	Busy
+	// Busy
 }
