@@ -1,9 +1,10 @@
 use bevy::prelude::*;
-use crate::common::{u_int_float::*, size::*, states::*};
-use super::movement::*;
+use crate::common::{size::*, states::*};
+use super::settings::*;
+use super::movement::{MovableOnMap, PlayerOnMap, Movement, MovementEvent, Orientation, move_player};
 
 pub fn standard_atlas(setting: Res<SpriteSettings>, size: Size) -> TextureAtlasLayout {
-	let sprite_size = setting.sprite_size.u() * match size {
+	let sprite_size = setting.sprite_size * match size {
 		Size::Small => 1,
 		Size::Medium => 1,
 		Size::Large => 2,
@@ -74,7 +75,7 @@ pub fn on_move(
 	};
 	let (mut transform, mut sprite, mut movable) = mover;
 
-	let movement = Movement::new(trigger.event(), camera_setting.tile_size.f());
+	let movement = Movement::new(trigger.event(), camera_setting.tile_size as f32);
 
 	let Some(ref mut texture_atlas) = sprite.texture_atlas else {
 		transform.translation += movement.move_vector;
@@ -86,7 +87,9 @@ pub fn on_move(
 	texture_atlas.index = match trigger.orientation {
 		Orientation::Down => SPRITE_DOWN_INDEX,
 		Orientation::Up => SPRITE_UP_INDEX,
-		Orientation::Left | Orientation::Right => SPRITE_LEFT1_INDEX
+		Orientation::Left | Orientation::Right => 
+			if !matches!(texture_atlas.index, SPRITE_LEFT1_INDEX | SPRITE_LEFT2_INDEX) { SPRITE_LEFT1_INDEX }
+			else { texture_atlas.index }
 	};
 
 	if trigger.orientation == Orientation::Left {
@@ -113,7 +116,7 @@ pub fn move_movables(
 
 			transform.translation += movable.movement.move_vector;
 			
-			if movable.movement.orientation == Orientation::Up || movable.movement.orientation == Orientation::Down {
+			if matches!(movable.movement.orientation, Orientation::Up | Orientation::Down) {
 				sprite.flip_x = !sprite.flip_x;
 			} else {
 				if let Some(ref mut texture_atlas) = sprite.texture_atlas {
@@ -129,49 +132,13 @@ pub fn move_movables(
 	}
 }
 
-#[derive(Resource)]
-pub struct CameraSettings {
-	// player_speed: f32,
-	// camera_decay_rate: f32,
-	transform_scale: f32,
-	tile_size: UIntFloat
-}
-
-const SPRITE_DOWN_INDEX: usize = 0;
-const SPRITE_UP_INDEX: usize = 1;
-const SPRITE_LEFT1_INDEX: usize = 2;
-const SPRITE_LEFT2_INDEX: usize = 3;
-
-impl Default for CameraSettings {
-	fn default() -> Self {
-		CameraSettings {
-			// player_speed: 100.,
-			// camera_decay_rate: 2.,
-			transform_scale: 0.5,
-			tile_size: UIntFloat::new(16)
-		}
-	}
-}
-
-#[derive(Resource)]
-pub struct SpriteSettings {
-	sprite_size: UIntFloat
-}
-
-impl Default for SpriteSettings {
-	fn default() -> Self {
-			SpriteSettings {
-				sprite_size: UIntFloat::new(16)
-		 }
-	}
-}
-
 pub struct WorldCameraPlugin;
 
 impl Plugin for WorldCameraPlugin {
 	fn build(&self, app: &mut App) {
-			app.insert_resource(CameraSettings { ..default() });
-			app.insert_resource(SpriteSettings { ..default() });
+			app.insert_resource(CameraSettings::default());
+			app.insert_resource(SpriteSettings::default());
+			app.insert_resource(MapMoveSettings::default());
 			app.add_systems(Startup, (setup_camera, setup_player_on_map).chain());
 			// app.add_systems(Update, (move_player, update_camera).chain());
 			app.add_systems(Update, (move_player, move_movables).chain());
