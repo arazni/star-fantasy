@@ -83,3 +83,15 @@ impl Plugin for HelloPlugin {
 	// 				move_delta.extend(0.)
 	// 			]).expect("appropriate samples in on_move")
 	// 		));
+
+// pub fn update_camera(
+// 	mut camera: Single<&mut Transform, (With<Camera2d>, Without<PlayerOnMap>)>,
+// 	player: Single<&Transform, (With<PlayerOnMap>, Without<Camera2d>)>,
+// 	time: Res<Time>,
+// 	settings: Res<CameraSettings>
+// ) {
+// 	let Vec3 { x, y, .. } = player.translation;
+// 	let direction = Vec3::new(x, y, camera.translation.z);
+
+// 	camera.translation.smooth_nudge(&direction, settings.camera_decay_rate, time.delta_secs());
+// }

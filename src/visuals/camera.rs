@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use crate::common::{size::*, states::*};
+use crate::inputs::input_settings::KeySettings;
 use super::settings::*;
 use super::movement::{MovableOnMap, PlayerOnMap, Movement, MovementEvent, Orientation, move_player};
+use super::asset_constants::*;
 
 pub fn standard_atlas(setting: Res<SpriteSettings>, size: Size) -> TextureAtlasLayout {
 	let sprite_size = setting.sprite_size * match size {
@@ -25,7 +27,7 @@ pub fn setup_camera(
 	commands.spawn((
 		Camera2d, 
 		Projection::from(OrthographicProjection {
-			scale: settings.transform_scale,
+			scale: settings.transform_scale_ring.current(),
 			..OrthographicProjection::default_2d()
 	})));
 }
@@ -42,7 +44,7 @@ pub fn setup_player_on_map(
 		PlayerOnMap,
 		MovableOnMap::default(),
 		Sprite::from_atlas_image(
-			asset_server.load("characters/mystic-animation.png"),
+			asset_server.load(MAP_MOVABLE_PLAYER_CHARACTER_MYSTIC),
 			TextureAtlas {
 				layout: handler,
 				index: SPRITE_DOWN_INDEX
@@ -52,18 +54,6 @@ pub fn setup_player_on_map(
 
 	commands.add_observer(on_move);
 }
-
-// pub fn update_camera(
-// 	mut camera: Single<&mut Transform, (With<Camera2d>, Without<PlayerOnMap>)>,
-// 	player: Single<&Transform, (With<PlayerOnMap>, Without<Camera2d>)>,
-// 	time: Res<Time>,
-// 	settings: Res<CameraSettings>
-// ) {
-// 	let Vec3 { x, y, .. } = player.translation;
-// 	let direction = Vec3::new(x, y, camera.translation.z);
-
-// 	camera.translation.smooth_nudge(&direction, settings.camera_decay_rate, time.delta_secs());
-// }
 
 pub fn on_move(
 	trigger: Trigger<MovementEvent>,
@@ -132,6 +122,25 @@ pub fn move_movables(
 	}
 }
 
+pub fn cycle_zoom(
+	mut camera_settings: ResMut<CameraSettings>,
+	key_settings: Res<KeySettings>,
+	keyboard: Res<ButtonInput<KeyCode>>,
+	projection: Single<&mut Projection, With<Camera2d>>
+) {
+	if !keyboard.any_just_pressed(key_settings.zoom.clone()) {
+		return;
+	}
+
+	let scale = camera_settings.transform_scale_ring.next();
+	match projection.into_inner().into_inner() {
+		Projection::Orthographic(p2) => {
+			p2.scale = scale;
+		},
+		_ => return
+	}
+}
+
 pub struct WorldCameraPlugin;
 
 impl Plugin for WorldCameraPlugin {
@@ -142,5 +151,6 @@ impl Plugin for WorldCameraPlugin {
 			app.add_systems(Startup, (setup_camera, setup_player_on_map).chain());
 			// app.add_systems(Update, (move_player, update_camera).chain());
 			app.add_systems(Update, (move_player, move_movables).chain());
+			app.add_systems(Update, cycle_zoom);
 	}
 }
