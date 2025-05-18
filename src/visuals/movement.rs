@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use super::settings::MapMoveSettings;
 
-use crate::common::{states::MovementState};
+use crate::{common::states::MovementState, inputs::input_settings::KeySettings};
 
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub enum Orientation {
@@ -69,6 +69,7 @@ pub fn move_player(
 	player_query: Single<(Entity, &mut MovableOnMap), With<PlayerOnMap>>,
 	keyboard: Res<ButtonInput<KeyCode>>,
 	move_setting: Res<MapMoveSettings>,
+	key_setting: Res<KeySettings>,
 	mut commands: Commands
 ) {
 	let (player, mut movable) = player_query.into_inner();
@@ -77,7 +78,7 @@ pub fn move_player(
 		return;
 	}
 
-	if keyboard.pressed(KeyCode::ArrowLeft) {
+	if keyboard.any_pressed(key_setting.left.clone()) {
 		movable.movement_state = MovementState::Moving;
 		commands.trigger_targets(
 			MovementEvent {
@@ -91,7 +92,7 @@ pub fn move_player(
 		);
 	}
 
-	else if keyboard.pressed(KeyCode::ArrowRight) {
+	else if keyboard.any_pressed(key_setting.right.clone()) {
 		movable.movement_state = MovementState::Moving;
 		commands.trigger_targets(
 			MovementEvent {
@@ -105,7 +106,7 @@ pub fn move_player(
 		);
 	}
 
-	else if keyboard.pressed(KeyCode::ArrowDown) {
+	else if keyboard.any_pressed(key_setting.down.clone()) {
 		movable.movement_state = MovementState::Moving;
 		commands.trigger_targets(
 			MovementEvent {
@@ -119,7 +120,7 @@ pub fn move_player(
 		);
 	}
 
-	else if keyboard.pressed(KeyCode::ArrowUp) {
+	else if keyboard.any_pressed(key_setting.up.clone()) {
 		movable.movement_state = MovementState::Moving;
 		commands.trigger_targets(
 			MovementEvent {
