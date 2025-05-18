@@ -88,8 +88,8 @@ pub fn on_move(
 		Orientation::Down => SPRITE_DOWN_INDEX,
 		Orientation::Up => SPRITE_UP_INDEX,
 		Orientation::Left | Orientation::Right => 
-			if !matches!(texture_atlas.index, SPRITE_LEFT1_INDEX | SPRITE_LEFT2_INDEX) { SPRITE_LEFT1_INDEX }
-			else { texture_atlas.index }
+			if matches!(texture_atlas.index, SPRITE_LEFT1_INDEX | SPRITE_LEFT2_INDEX) { texture_atlas.index }
+			else { SPRITE_LEFT1_INDEX }
 	};
 
 	if trigger.orientation == Orientation::Left {
