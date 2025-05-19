@@ -5,9 +5,9 @@ edition = "2024"
 
 # trim later? https://bevy-cheatbook.github.io/setup/bevy-config.html
 [dependencies]
-bevy = { version = "0.16.0", features = ["dynamic_linking", "bevy_dev_tools"] } # remove dev_tools if releasing
+bevy = { version = "0.16.0", features = ["dynamic_linking", "bevy_dev_tools"] } # remove dev_tools if #release
 
-# https://bevyengine.org/learn/quick-start/getting-started/setup/ -- come back here if ready to release anything, especially wasm
+# https://bevyengine.org/learn/quick-start/getting-started/setup/ -- come back here if ready to #release anything, especially wasm
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
 opt-level = 1
